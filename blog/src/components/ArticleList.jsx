@@ -42,7 +42,7 @@ function ArticleList() {
                 <NavLink
                   exact
                   activeClassName="active"
-                  to={`/articles/${article.id}`}
+                  to={`/articles/a/${article.id}`}
                 >
                   Read whole article
                 </NavLink>

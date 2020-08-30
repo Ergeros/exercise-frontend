@@ -4,12 +4,18 @@ import Image from "react-bootstrap/Image";
 import Alert from "react-bootstrap/Alert";
 import List from "components/List";
 import Item from "components/List/Item";
+import Button from "react-bootstrap/Button";
+import authHeader from "../helpers/authHeader";
 import axios from "axios";
-const ARTICLE_URL = "http://localhost:8000/posts";
+import { connect } from "react-redux";
 
-function ArticleDetail({ match: { params } }) {
+const ARTICLE_URL = `${process.env.REACT_APP_BASE_API_URI}/posts`;
+
+function ArticleDetail({ match: { params }, user }) {
   const [article, setArticle] = useState({});
   const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+
   const [error, setError] = useState(null);
   useEffect(() => {
     axios
@@ -25,6 +31,25 @@ function ArticleDetail({ match: { params } }) {
       .catch((err) => err.response)
       .catch((response) => setError(response.data));
   }, []);
+
+  const handleCommentSubmit = () => {
+    let author = "";
+    if (user) {
+      author = `${user.firstName} ${user.lastName}`;
+    }
+    axios
+      .post(
+        `${ARTICLE_URL}/${params.id}/comments`,
+        { content: newComment, author },
+        { headers: authHeader() }
+      )
+      .then((res) => res.data)
+      .then((data) => {
+        setComments((prevState) => [...prevState, data]);
+        setNewComment("");
+      })
+      .catch((err) => setError(err.response.data));
+  };
   return (
     <Container>
       {error && <Alert variant="danger">{error.message}</Alert>}
@@ -42,7 +67,7 @@ function ArticleDetail({ match: { params } }) {
         </div>
         {article.imagePath && (
           <img
-            src={`http://localhost:8000/uploads/${article.imagePath}`}
+            src={`${process.env.REACT_APP_BASE_API_URI}/uploads/${article.imagePath}`}
             alt="Probably super cute kitty"
           />
         )}
@@ -57,10 +82,18 @@ function ArticleDetail({ match: { params } }) {
           <textarea
             className="add-comment"
             placeholder="Join the discussion"
+            value={newComment}
+            onChange={(e) => {
+              const { value } = e.target;
+              setNewComment(value);
+            }}
           ></textarea>
         </Item>
-        {comments.map((comment) => (
-          <Item>
+        <Button variant="primary" type="submit" onClick={handleCommentSubmit}>
+          Comment
+        </Button>
+        {comments.map((comment, index) => (
+          <Item key={index}>
             <Image src="/logo.png" className="user-avatar" roundedCircle />
             <div style={{ flexDirection: "column" }}>
               <div className="show-row">
@@ -77,4 +110,11 @@ function ArticleDetail({ match: { params } }) {
     </Container>
   );
 }
-export default ArticleDetail;
+
+const mapStateToProps = (state) => {
+  return {
+    user: state.user.user,
+  };
+};
+
+export default connect(mapStateToProps, null)(ArticleDetail);
